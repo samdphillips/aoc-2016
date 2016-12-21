@@ -20,7 +20,7 @@ impl Dir {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Turn { Left, Right }
 
 impl FromStr for Turn {
@@ -35,7 +35,7 @@ impl FromStr for Turn {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct Command {
     turn: Turn,
     steps: u32
