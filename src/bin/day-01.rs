@@ -1,4 +1,5 @@
 
+use std::io::Read;
 use std::str::{Chars, FromStr};
 
 #[derive(Debug, PartialEq)]
@@ -48,6 +49,10 @@ struct Position {
 }
 
 impl Position {
+    fn origin() -> Position {
+        Position { x: 0, y: 0, facing: Dir::N }
+    }
+
     fn update(&self, cmd: Command) -> Position {
         let dir = self.facing.turn(cmd.turn);
         let (dx, dy) =
@@ -178,4 +183,11 @@ fn aoc01_test_distance() {
 }
 
 fn main () {
+    let mut buffer = String::new();
+    std::io::stdin().read_to_string(&mut buffer);
+    let tok = Tokenize::from_str(&buffer);
+    let parse = Parse { tokenize: tok };
+    let posn = parse.fold(Position::origin(), |posn, cmd| posn.update(cmd));
+
+    println!("{:?} {}", posn, posn.distance_to_origin());
 }
