@@ -111,16 +111,24 @@ impl<'a> Iterator for Tokenize<'a> {
     }
 }
 
-fn read_command(tok: &mut Tokenize) -> Option<Command> {
-    let turn = tok.next();
-    if turn.is_none() { return None }
+struct Parse<'a> {
+    tokenize: Tokenize<'a>
+}
 
-    let steps = tok.next();
-    if steps.is_none() { return None }
+impl<'a> Iterator for Parse<'a> {
+    type Item = Command;
 
-    let turn : Turn = turn.unwrap().parse().expect("expected a turn");
-    let steps : u32 = steps.unwrap().parse().expect("expected a u32");
-    Some(Command { turn: turn, steps: steps })
+    fn next(&mut self) -> Option<Command> {
+        let turn = self.tokenize.next();
+        if turn.is_none() { return None }
+
+        let steps = self.tokenize.next();
+        if steps.is_none() { return None }
+
+        let turn : Turn = turn.unwrap().parse().expect("expected a turn");
+        let steps : u32 = steps.unwrap().parse().expect("expected a u32");
+        Some(Command { turn: turn, steps: steps })
+    }
 }
 
 #[test]
@@ -155,11 +163,12 @@ fn aoc01_test_tokenize() {
 
 #[test]
 fn aoc01_test_read_command() {
-    let mut tok = Tokenize::from_str("L32, R2, L5");
-    assert!(read_command(&mut tok) == Some(Command { turn: Turn::Left, steps: 32 }));
-    assert!(read_command(&mut tok) == Some(Command { turn: Turn::Right, steps: 2 }));
-    assert!(read_command(&mut tok) == Some(Command { turn: Turn::Left, steps: 5 }));
-    assert!(read_command(&mut tok) == None)
+    let tok = Tokenize::from_str("L32, R2, L5");
+    let mut parse = Parse { tokenize: tok };
+    assert!(parse.next() == Some(Command { turn: Turn::Left, steps: 32 }));
+    assert!(parse.next() == Some(Command { turn: Turn::Right, steps: 2 }));
+    assert!(parse.next() == Some(Command { turn: Turn::Left, steps: 5 }));
+    assert!(parse.next() == None)
 }
 
 #[test]
