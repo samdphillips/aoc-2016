@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::str::{Chars, FromStr};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 enum Dir { N, S, E, W }
 
 impl Dir {
@@ -21,7 +21,7 @@ impl Dir {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 enum Turn { Left, Right }
 
 impl FromStr for Turn {
@@ -36,10 +36,10 @@ impl FromStr for Turn {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-struct Command {
-    turn: Turn,
-    steps: u32
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum Command {
+    CmdTurn(Turn),
+    CmdStep
 }
 
 #[derive(Debug, PartialEq)]
@@ -55,19 +55,26 @@ impl Position {
     }
 
     fn update(&self, cmd: Command) -> Position {
-        let dir = self.facing.turn(cmd.turn);
+        match cmd {
+            Command::CmdTurn(turn) => self.update_turn(turn),
+            Command::CmdStep => self.update_step()
+        }
+    }
+
+    fn update_turn(&self, turn: Turn) -> Position {
+        Position { x: self.x, y: self.y, facing: self.facing.turn(turn) }
+    }
+
+    fn update_step(&self) -> Position {
         let (dx, dy) =
-            match dir {
+            match self.facing {
                 Dir::N => (0, 1),
                 Dir::S => (0, -1),
                 Dir::E => (1, 0),
                 Dir::W => (-1, 0)
             };
 
-        let dx = dx * cmd.steps as i32;
-        let dy = dy * cmd.steps as i32;
-
-        Position { x: self.x + dx, y: self.y + dy, facing: dir }
+        Position { x: self.x + dx, y: self.y + dy, facing: self.facing }
     }
 
     fn distance_to_origin(&self) -> u32 {
@@ -118,13 +125,13 @@ impl<'a> Iterator for Tokenize<'a> {
 }
 
 struct Parse<'a> {
-    tokenize: Tokenize<'a>
+    tokenize: Tokenize<'a>,
+    steps: u32,
 }
 
-impl<'a> Iterator for Parse<'a> {
-    type Item = Command;
 
-    fn next(&mut self) -> Option<Command> {
+impl<'a> Parse<'a> {
+    fn next_tokens(&mut self) -> Option<Command> {
         let turn = self.tokenize.next();
         if turn.is_none() { return None }
 
@@ -133,7 +140,21 @@ impl<'a> Iterator for Parse<'a> {
 
         let turn : Turn = turn.unwrap().parse().expect("expected a turn");
         let steps : u32 = steps.unwrap().parse().expect("expected a u32");
-        Some(Command { turn: turn, steps: steps })
+        self.steps = steps;
+        Some(Command::CmdTurn(turn))
+    }
+}
+
+impl<'a> Iterator for Parse<'a> {
+    type Item = Command;
+
+    fn next(&mut self) -> Option<Command> {
+        if self.steps == 0 {
+            self.next_tokens()
+        } else {
+            self.steps = self.steps - 1;
+            Some(Command::CmdStep)
+        }
     }
 }
 
@@ -154,9 +175,13 @@ fn aoc01_test_turns() {
 
 #[test]
 fn aoc01_test_update_position() {
-    let cmd = Command { turn: Turn::Left, steps: 5 };
+    let cmd = Command::CmdTurn(Turn::Left);
     let posn = Position { x: 0, y: 0, facing: Dir::N };
-    assert!(posn.update(cmd) == Position { x: -5, y: 0, facing: Dir::W });
+    let mut posn = posn.update(cmd);
+    for _ in 0..5 {
+        posn = posn.update(Command::CmdStep)
+    }
+    assert!(posn == Position { x: -5, y: 0, facing: Dir::W });
 }
 
 #[test]
@@ -169,11 +194,15 @@ fn aoc01_test_tokenize() {
 
 #[test]
 fn aoc01_test_read_command() {
-    let tok = Tokenize::from_str("L32, R2, L5");
-    let mut parse = Parse { tokenize: tok };
-    assert!(parse.next() == Some(Command { turn: Turn::Left, steps: 32 }));
-    assert!(parse.next() == Some(Command { turn: Turn::Right, steps: 2 }));
-    assert!(parse.next() == Some(Command { turn: Turn::Left, steps: 5 }));
+    let tok = Tokenize::from_str("L2, R1, L1");
+    let mut parse = Parse { tokenize: tok, steps: 0 };
+    assert!(parse.next() == Some(Command::CmdTurn(Turn::Left)));
+    assert!(parse.next() == Some(Command::CmdStep));
+    assert!(parse.next() == Some(Command::CmdStep));
+    assert!(parse.next() == Some(Command::CmdTurn(Turn::Right)));
+    assert!(parse.next() == Some(Command::CmdStep));
+    assert!(parse.next() == Some(Command::CmdTurn(Turn::Left)));
+    assert!(parse.next() == Some(Command::CmdStep));
     assert!(parse.next() == None)
 }
 
@@ -187,7 +216,7 @@ fn part_one () {
     let mut buffer = String::new();
     std::io::stdin().read_to_string(&mut buffer);
     let tok = Tokenize::from_str(&buffer);
-    let parse = Parse { tokenize: tok };
+    let parse = Parse { tokenize: tok, steps: 0 };
     let posn = parse.fold(Position::origin(), |posn, cmd| posn.update(cmd));
 
     println!("{:?} {}", posn, posn.distance_to_origin());
@@ -197,13 +226,13 @@ fn part_two() {
     let mut buffer = String::new();
     std::io::stdin().read_to_string(&mut buffer);
     let tok = Tokenize::from_str(&buffer);
-    let parse = Parse { tokenize: tok };
+    let parse = Parse { tokenize: tok, steps: 0 };
     let mut table = HashMap::new();
     let mut posn = Position::origin();
 
     table.insert((0,0), 1);
     for cmd in parse {
-        posn = posn.update(cmd.clone());
+        posn = posn.update(cmd);
         let p = (posn.x, posn.y);
         let c = table.get(&p).unwrap_or(&0) + 1;
 
