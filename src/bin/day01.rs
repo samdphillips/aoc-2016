@@ -1,4 +1,5 @@
 
+use std::collections::HashMap;
 use std::io::Read;
 use std::str::{Chars, FromStr};
 
@@ -182,7 +183,7 @@ fn aoc01_test_distance() {
     assert!(posn.distance_to_origin() == 4);
 }
 
-fn main () {
+fn part_one () {
     let mut buffer = String::new();
     std::io::stdin().read_to_string(&mut buffer);
     let tok = Tokenize::from_str(&buffer);
@@ -190,4 +191,39 @@ fn main () {
     let posn = parse.fold(Position::origin(), |posn, cmd| posn.update(cmd));
 
     println!("{:?} {}", posn, posn.distance_to_origin());
+}
+
+fn part_two() {
+    let mut buffer = String::new();
+    std::io::stdin().read_to_string(&mut buffer);
+    let tok = Tokenize::from_str(&buffer);
+    let parse = Parse { tokenize: tok };
+    let mut table = HashMap::new();
+    let mut posn = Position::origin();
+
+    table.insert((0,0), 1);
+    for cmd in parse {
+        posn = posn.update(cmd.clone());
+        let p = (posn.x, posn.y);
+        let c = table.get(&p).unwrap_or(&0) + 1;
+
+        println!("{} {:?} {:?}", c, posn, cmd);
+
+        if c == 2 {
+            println!("{:?} {}", posn, posn.distance_to_origin());
+            break
+        }
+        table.insert(p, c);
+    }
+}
+
+fn main() {
+    let flag = std::env::args().nth(1).unwrap();
+
+    match flag.as_ref() {
+        "-1" => part_one(),
+        "-2" => part_two(),
+        _ => println!("expected '-1' or '-2'")
+
+    }
 }
