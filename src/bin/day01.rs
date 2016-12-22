@@ -233,16 +233,19 @@ fn part_two() {
     table.insert((0,0), 1);
     for cmd in parse {
         posn = posn.update(cmd);
-        let p = (posn.x, posn.y);
-        let c = table.get(&p).unwrap_or(&0) + 1;
 
-        println!("{} {:?} {:?}", c, posn, cmd);
-
-        if c == 2 {
-            println!("{:?} {}", posn, posn.distance_to_origin());
-            break
+        match cmd {
+            Command::CmdStep => {
+                let p = (posn.x, posn.y);
+                let c = table.get(&p).unwrap_or(&0) + 1;
+                if c == 2 {
+                    println!("solution: {:?} {}", posn, posn.distance_to_origin());
+                    break
+                }
+                table.insert(p, c);
+            },
+            _ => ()
         }
-        table.insert(p, c);
     }
 }
 
