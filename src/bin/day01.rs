@@ -1,4 +1,6 @@
 
+#![allow(unused_must_use)]
+
 use std::collections::HashMap;
 use std::io::Read;
 use std::str::{Chars, FromStr};
