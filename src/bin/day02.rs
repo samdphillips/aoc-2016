@@ -7,6 +7,7 @@ struct Bounds(u8, u8);
 
 trait Puzzle {
     fn bounds(&self, b: u8) -> Bounds;
+    fn value(&self, s: &State) -> char;
 }
 
 fn sub1<P: Puzzle>(a: u8, b: u8, p: &P) -> u8 {
@@ -22,15 +23,6 @@ fn add1<P: Puzzle>(a: u8, b: u8, p: &P) -> u8 {
 #[derive(Clone, Copy, Debug)]
 struct State(u8, u8);
 
-static P1_KEYS: &'static str = "123456789";
-
-impl State {
-    fn value(&self) -> char {
-        let i = self.0 + self.1 * 3;
-        P1_KEYS.chars().nth(i as usize).unwrap()
-    }
-}
-
 fn decode<P: Puzzle>(p: &P, mut state: State, st: &str) -> (State, char) {
     for c in st.chars() {
         state = match c {
@@ -41,7 +33,7 @@ fn decode<P: Puzzle>(p: &P, mut state: State, st: &str) -> (State, char) {
             _ => panic!("Unknown character")
         };
     }
-    (state, state.value())
+    (state, p.value(&state))
 }
 
 fn decode_lines<P: Puzzle>(p: &P, input: &mut BufRead) -> String {
@@ -60,10 +52,17 @@ fn decode_lines<P: Puzzle>(p: &P, input: &mut BufRead) -> String {
 #[derive(Clone, Copy, Debug)]
 struct Part1Puzzle { }
 
+static P1_KEYS: &'static str = "123456789";
+
 impl Puzzle for Part1Puzzle {
     #[allow(unused_variables)]
     fn bounds(&self, b: u8) -> Bounds {
         Bounds(0, 2)
+    }
+
+    fn value(&self, s: &State) -> char {
+        let i = s.0 + s.1 * 3;
+        P1_KEYS.chars().nth(i as usize).unwrap()
     }
 }
 
@@ -93,6 +92,11 @@ impl Puzzle for Part2Puzzle {
     #[allow(unused_variables)]
     fn bounds(&self, b: u8) -> Bounds {
         Bounds(0, 2)
+    }
+
+    fn value(&self, s: &State) -> char {
+        let i = s.0 + s.1 * 3;
+        P1_KEYS.chars().nth(i as usize).unwrap()
     }
 }
 
