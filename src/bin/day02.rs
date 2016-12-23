@@ -6,6 +6,7 @@ use std::io::BufRead;
 struct Bounds(u8, u8);
 
 trait Puzzle {
+    fn init_state(&self) -> State;
     fn bounds(&self, b: u8) -> Bounds;
     fn value(&self, s: &State) -> char;
 }
@@ -37,12 +38,13 @@ fn decode<P: Puzzle>(p: &P, mut state: State, st: &str) -> (State, char) {
 }
 
 fn decode_lines<P: Puzzle>(p: &P, input: &mut BufRead) -> String {
-    let mut state = State(1, 1);
+    let mut state = p.init_state();
     let mut code = String::new();
 
     for line in input.lines() {
         let (s, v) = decode(p, state, &line.unwrap());
         state = s;
+        println!("{:?} {}", state, v);
         code.push(v)
     }
     code
@@ -55,6 +57,10 @@ struct Part1Puzzle { }
 static P1_KEYS: &'static str = "123456789";
 
 impl Puzzle for Part1Puzzle {
+    fn init_state(&self) -> State {
+        State(1, 1)
+    }
+
     #[allow(unused_variables)]
     fn bounds(&self, b: u8) -> Bounds {
         Bounds(0, 2)
@@ -88,15 +94,27 @@ fn part_one() {
 #[derive(Clone, Copy, Debug)]
 struct Part2Puzzle { }
 
+static P2_KEYS: &'static str = "XX1XXX234X56789XABCXXXDXX";
+
 impl Puzzle for Part2Puzzle {
+    fn init_state(&self) -> State {
+        State(0, 2)
+    }
+
     #[allow(unused_variables)]
     fn bounds(&self, b: u8) -> Bounds {
-        Bounds(0, 2)
+        let b = (b as i8 - 2).abs();
+        match b {
+            0 => Bounds(0, 4),
+            1 => Bounds(1, 3),
+            2 => Bounds(2, 2),
+            _ => panic!("shouldn't happen {}", b)
+        }
     }
 
     fn value(&self, s: &State) -> char {
-        let i = s.0 + s.1 * 3;
-        P1_KEYS.chars().nth(i as usize).unwrap()
+        let i = s.0 + s.1 * 5;
+        P2_KEYS.chars().nth(i as usize).unwrap()
     }
 }
 
@@ -107,7 +125,7 @@ fn aoc02_test2() {
     let mut input = Cursor::new(input);
     let p = Part2Puzzle { };
     let code = decode_lines(&p, &mut input);
-    assert!(code == "1985");
+    assert!(code == "5DB3");
 }
 
 fn part_two() { }
