@@ -9,26 +9,40 @@ fn add1(x: u8) -> u8 {
     min(2, x + 1)
 }
 
+#[derive(Clone, Copy, Debug)]
+struct State(u8, u8);
 
-fn decode(s: &str) {
-    let mut state : (u8, u8) = (1, 1);
+impl State {
+    fn value(&self) -> u8 {
+        self.0 + self.1 * 3 + 1
+    }
+}
 
-    for c in "ULL".chars() {
+fn decode(mut state: State, st: &str) -> (State, u8) {
+    for c in st.chars() {
+        print!("{:?}", state);
         state = match c {
-            'U' => (state.0, sub1(state.1)),
-            'D' => (state.0, add1(state.1)),
-            'L' => (sub1(state.0), state.1),
-            'R' => (add1(state.0), state.1),
+            'U' => State(state.0, sub1(state.1)),
+            'D' => State(state.0, add1(state.1)),
+            'L' => State(sub1(state.0), state.1),
+            'R' => State(add1(state.0), state.1),
             _ => panic!("Unknown character")
-        }
+        };
+        println!(" -[{}]-> {:?}", c, state);
     }
 
-    println!("{:?} {}", state, state.0 + state.1 * 3 + 1);
+    println!("{:?} {}", state, state.value());
+    (state, state.value())
 }
 
 fn part_one() {
-    decode("ULL")
+    let state = State(1, 1);
+    let (state, v) = decode(state, "ULL");
+    let (state, v) = decode(state, "RRDDD");
+    let (state, v) = decode(state, "LURDL");
+    let (state, v) = decode(state, "UUUUD");
 }
+
 
 fn part_two() { }
 
