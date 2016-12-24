@@ -82,15 +82,6 @@ fn aoc02_test1() {
     assert!(code == "1985");
 }
 
-fn part_one() {
-    let stdin = std::io::stdin();
-    let mut input = stdin.lock();
-    let p = Part1Puzzle { };
-    let code = decode_lines(&p, &mut input);
-
-    println!("{:?}", code);
-}
-
 #[derive(Clone, Copy, Debug)]
 struct Part2Puzzle { }
 
@@ -128,14 +119,19 @@ fn aoc02_test2() {
     assert!(code == "5DB3");
 }
 
-fn part_two() { }
+fn solve<P: Puzzle>(p: &P) {
+    let stdin = std::io::stdin();
+    let mut input = stdin.lock();
+    let code = decode_lines(p, &mut input);
+    println!("{}", code);
+}
 
 fn main() {
     let flag = std::env::args().nth(1).unwrap();
 
     match flag.as_ref() {
-        "-1" => part_one(),
-        "-2" => part_two(),
+        "-1" => solve(&Part1Puzzle { }),
+        "-2" => solve(&Part2Puzzle { }),
         _ => println!("expected '-1' or '-2'")
     }
 }
