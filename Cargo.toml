@@ -5,3 +5,4 @@ authors = ["Sam Phillips <samdphillips@gmail.com>"]
 
 [dependencies]
 itertools = "0.5.8"
+md5 = "0.3.2"
