@@ -1,8 +1,13 @@
 
+extern crate itertools;
+
+use std::char;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::BufRead;
-use std::str::FromStr;
+use std::str::{Chars, FromStr};
+
+use itertools::Itertools;
 
 #[derive(Debug)]
 struct Counter {
@@ -52,6 +57,26 @@ impl RoomCode {
 
     fn valid_code(&self) -> bool {
         self.compute_key() == self.key
+    }
+
+    fn decrypt(&self) -> String {
+        self.name
+            .iter()
+            .map(|name| name.chars().decrypt(self.sector % 26))
+            .intersperse(" ".to_string())
+            .collect()
+    }
+}
+
+trait Decrypt {
+    fn decrypt(self, offset: u32) -> String;
+}
+
+impl<'a> Decrypt for Chars<'a> {
+    fn decrypt(self, offset: u32) -> String {
+        let a = 'a' as u32;
+        self.map(|c| char::from_u32((((c as u32) - a + offset) % 26) + a).unwrap())
+            .collect()
     }
 }
 
@@ -138,7 +163,13 @@ fn aoc04_test_room_code_validity() {
     assert!(!"totally-real-room-200[decoy]".parse::<RoomCode>().unwrap().valid_code());
 }
 
-fn main () {
+#[test]
+fn aoc04_test_decrypt() {
+    let rc: RoomCode = "qzmt-zixmtkozy-ivhz-343[xxx]".parse().unwrap();
+    assert_eq!(rc.decrypt(), "very encrypted name");
+}
+
+fn part_one() {
     let stdin = std::io::stdin();
     let x : u32 =
         stdin.lock()
@@ -149,4 +180,28 @@ fn main () {
              .sum();
 
      println!("{:?}", x);
+}
+
+fn part_two() {
+    let stdin = std::io::stdin();
+    let x =
+        stdin.lock()
+             .lines()
+             .map(|s| s.unwrap().parse::<RoomCode>().unwrap())
+             .filter(|rc| rc.valid_code())
+             .map(|rc| (rc.decrypt(), rc.sector));
+
+    for (name, sector) in x {
+        println!("{:<4} {}", sector, name);
+    }
+}
+
+fn main () {
+    let flag = std::env::args().nth(1).unwrap();
+
+    match flag.as_ref() {
+        "-1" => part_one(),
+        "-2" => part_two(),
+        _ => println!("expected '-1' or '-2'")
+    }
 }
