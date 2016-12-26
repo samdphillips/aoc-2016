@@ -77,11 +77,11 @@ fn aoc04_test_counter_add_char() {
     let ach = 'a';
     let bch = 'b';
     c.add_char(ach);
-    assert!(c.counts[&ach] == 1);
+    assert_eq!(c.counts[&ach], 1);
     c.add_char(ach);
-    assert!(c.counts[&ach] == 2);
+    assert_eq!(c.counts[&ach], 2);
     c.add_char(bch);
-    assert!(c.counts[&bch] == 1);
+    assert_eq!(c.counts[&bch], 1);
 }
 
 #[test]
@@ -98,8 +98,7 @@ fn aoc04_test_counter_key() {
     c.add_char(bch);
     c.add_char(cch);
     c.add_char(bch);
-    println!("{}", c.key());
-    assert!(c.key() == "bac");
+    assert_eq!(c.key(), "bac");
 }
 
 #[test]
@@ -108,18 +107,16 @@ fn aoc04_test_keyname() {
     for ch in "notarealroom".chars() {
         c.add_char(ch)
     }
-    println!("{}", c.key());
-    assert!(c.key() == "oarel");
+    assert_eq!(c.key(), "oarel");
 }
 
 #[test]
 fn aoc04_test_parse_room_code() {
     let s = "aaaaa-bbb-z-y-x-123[abxyz]";
     let room_code: RoomCode = s.parse().expect("room code");
-    println!("{:?}", room_code);
-    assert!(room_code.key == "abxyz");
-    assert!(room_code.sector == 123);
-    assert!(room_code.name.len() == 5);
+    assert_eq!(room_code.key, "abxyz");
+    assert_eq!(room_code.sector, 123);
+    assert_eq!(room_code.name.len(), 5);
 }
 
 #[test]
@@ -130,7 +127,7 @@ fn aoc04_test_room_code_key() {
                  "y".to_string(),
                  "x".to_string());
     let r = RoomCode { name: n, sector: 123, key: "abxyz".to_string() };
-    assert!(r.key == r.compute_key());
+    assert_eq!(r.key, r.compute_key());
 }
 
 #[test]
