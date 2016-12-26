@@ -1,6 +1,10 @@
 
+extern crate itertools;
+
 use std::io::BufRead;
 use std::str::FromStr;
+
+use itertools::Itertools;
 
 #[derive(Clone, Copy, Debug)]
 struct Triangle(u32, u32, u32);
@@ -38,19 +42,34 @@ fn is_triangle(t: Triangle) -> bool {
 }
 
 fn part_one() {
-    let mut count = 0;
     let stdin = std::io::stdin();
-    for line_result in stdin.lock().lines() {
-        let line = line_result.expect("expected line of data");
-        let triangle = line.parse().expect("expected a triangle");
-        if is_triangle(triangle) {
-            count = count + 1
-        }
-    }
+    let count = stdin.lock()
+                     .lines()
+                     .map(|r| r.expect("expected line of data"))
+                     .map(|l| parse_line(&l).expect("expected three integers"))
+                     .map(|(a, b, c)| Triangle(a, b, c))
+                     .filter(|t| is_triangle(*t))
+                     .count();
     println!("{}", count);
 }
 
-fn part_two() { }
+fn part_two() {
+    let stdin = std::io::stdin();
+    let count = stdin.lock()
+                     .lines()
+                     .map(|r| r.expect("expected line of data"))
+                     .map(|l| parse_line(&l).expect("expected three integers"))
+                     .tuples()
+                     .flat_map(|((a0, b0, c0),
+                                 (a1, b1, c1),
+                                 (a2, b2, c2))|
+                               vec!(Triangle(a0, a1, a2),
+                                    Triangle(b0, b1, b2),
+                                    Triangle(c0, c1, c2)).into_iter())
+                     .filter(|t| is_triangle(*t))
+                     .count();
+    println!("{}", count);
+}
 
 fn main() {
     let flag = std::env::args().nth(1).unwrap();
