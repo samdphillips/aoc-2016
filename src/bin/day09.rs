@@ -1,79 +1,87 @@
 
 use std::cmp::min;
-use std::io::{BufRead, Cursor, Read};
+use std::io::{BufRead, BufReader, Cursor, Read, Result};
 
-struct Decompress<B> {
-    inner: B,
-    bufs: Vec<Vec<u8>>,
-    offset: usize,
-    bytes_ready: usize
+fn is_whitespace(c: u8) -> bool {
+    c == b' ' || c == b'\n'
 }
 
-impl<B> Decompress<B>
-    where B: BufRead
+struct FilterSpace<I> {
+    inner: I,
+}
+
+impl<I> FilterSpace<I>
+    where I: BufRead
 {
-    fn new(inner: B) -> Decompress<B> {
-        Decompress { inner: inner, bufs: Vec::new(), offset: 0, bytes_ready: 0 }
-    }
-
-    fn clean_buffers(&mut self) {
-        let mut clean = false;
-
-        match self.bufs.last() {
-            Some(b) => {
-                if self.offset == b.len() {
-                    clean = true
-                }
-            }
-            None => ()
-        }
-
-        if clean {
-            self.bufs.pop();
+    fn new(inner: I) -> FilterSpace<I> {
+        FilterSpace {
+            inner: inner,
         }
     }
 
-    fn fill_buffer(&mut self) -> std::io::Result<()> {
-        self.clean_buffers();
-
-        if self.bytes_ready == 0 {
-            self.decompress()
-        } else {
-            Ok(())
-        }
-    }
-
-    fn decompress(&mut self) -> std::io::Result<()> {
-
+    fn skip_spaces(&mut self) -> Result<()> {
+        let size =
+            {
+                let buf = try!(self.inner.fill_buf());
+                buf.iter().take_while(|&&c| is_whitespace(c)).count()
+            };
+        self.inner.consume(size);
         Ok(())
     }
+
+    fn into_bufreader(self) -> BufReader<Self> {
+        BufReader::new(self)
+    }
 }
 
-impl<B> Read for Decompress<B>
-    where B: BufRead
+impl<I> Read for FilterSpace<I>
+    where I: BufRead
 {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        try!(self.fill_buffer());
-        if self.bytes_ready == 0 {
-            return Ok(0)
-        }
+    fn read(&mut self, mut outbuf: &mut [u8]) -> Result<usize> {
+        try!(self.skip_spaces());
 
-        let b = self.bufs.last().unwrap();
-        let sz = min(self.bytes_ready, b.len());
-        try!(b[self.offset..self.offset + sz].as_ref().read(buf));
-        self.bytes_ready -= sz;
-        self.offset = sz;
-        Ok(sz)
+        let size =
+            {
+                let buf = try!(self.inner.fill_buf());
+                let size = match buf.iter().position(|&c| is_whitespace(c)) {
+                    Some(pos) => min(pos, outbuf.len()),
+                    None => min(buf.len(), outbuf.len()),
+                };
+                try!(buf[0..size].as_ref().read(&mut outbuf))
+            };
+        self.inner.consume(size + 1);
+        Ok(size)
     }
 }
 
 #[test]
-fn aoc09_test_parse() {
-    let inp = Cursor::new(b"(3x3)abcdef");
-    let mut dec = Decompress::new(inp);
-    let mut buf = String::new();
-    dec.read_to_string(&mut buf).unwrap();
-    println!("read {:?}", buf);
+fn aoc09_test_filter_spaces_simple() {
+    let x: Vec<u8> = b"abc def abc".to_vec();
+    let inner = Cursor::new(x);
+    let mut r = FilterSpace::new(inner);
+    let mut s = String::new();
+    r.read_to_string(&mut s).unwrap();
+    assert_eq!(s.as_str(), "abcdefabc")
+}
+
+#[test]
+fn aoc09_test_filter_spaces_start() {
+    let x: Vec<u8> = b" abc def abc".to_vec();
+    let inner = Cursor::new(x);
+    let mut r = FilterSpace::new(inner);
+    let mut s = String::new();
+    r.read_to_string(&mut s).unwrap();
+    assert_eq!(s.as_str(), "abcdefabc")
+}
+
+#[test]
+fn aoc09_test_filter_spaces_extra() {
+    let x: Vec<u8> = b" abc def \n   abc".to_vec();
+    let inner = Cursor::new(x);
+    let mut r = FilterSpace::new(inner);
+    let mut s = String::new();
+    r.read_to_string(&mut s).unwrap();
+    assert_eq!(s.as_str(), "abcdefabc")
 }
 
 fn main() { }
