@@ -1,51 +1,79 @@
 
-use std::iter::Chain;
+use std::cmp::min;
+use std::io::{BufRead, Cursor, Read};
 
-#[derive(Debug)]
-struct Repeater {
-    repeat: usize,
-    pos: usize,
-    elems: Vec<u8>
+struct Decompress<B> {
+    inner: B,
+    bufs: Vec<Vec<u8>>,
+    offset: usize,
+    bytes_ready: usize
 }
 
-fn repeater<I>(repeat: usize, it: I) -> Repeater
-    where I: IntoIterator<Item = u8> {
-        Repeater { repeat: repeat, pos: 0, elems: it.into_iter().collect() }
-}
+impl<B> Decompress<B>
+    where B: BufRead
+{
+    fn new(inner: B) -> Decompress<B> {
+        Decompress { inner: inner, bufs: Vec::new(), offset: 0, bytes_ready: 0 }
+    }
 
-impl Iterator for Repeater {
-    type Item = u8;
+    fn clean_buffers(&mut self) {
+        let mut clean = false;
 
-    fn next(&mut self) -> Option<u8> {
-        if self.pos == self.elems.len() {
-            self.pos = 0;
-            self.repeat = self.repeat - 1
+        match self.bufs.last() {
+            Some(b) => {
+                if self.offset == b.len() {
+                    clean = true
+                }
+            }
+            None => ()
         }
 
-        if self.repeat == 0 {
-            return None
+        if clean {
+            self.bufs.pop();
         }
+    }
 
-        let v = self.elems[self.pos];
-        self.pos = self.pos + 1;
-        Some(v)
+    fn fill_buffer(&mut self) -> std::io::Result<()> {
+        self.clean_buffers();
+
+        if self.bytes_ready == 0 {
+            self.decompress()
+        } else {
+            Ok(())
+        }
+    }
+
+    fn decompress(&mut self) -> std::io::Result<()> {
+
+        Ok(())
     }
 }
 
-fn decompress<I>(count: usize, repeat: usize, i: I) -> Chain<Repeater, <I as std::iter::IntoIterator>::IntoIter>
-    where I: IntoIterator<Item=u8> {
-        let mut it = i.into_iter();
-        repeater(repeat, it.by_ref().take(count)).chain(it)
-}
+impl<B> Read for Decompress<B>
+    where B: BufRead
+{
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        try!(self.fill_buffer());
+        if self.bytes_ready == 0 {
+            return Ok(0)
+        }
 
-#[test]
-fn aoc09_test_decompress() {
-    let v = b"abcdef".into_iter().cloned();
-    assert_eq!(decompress(3, 3, v).collect::<Vec<u8>>(), b"abcabcabcdef".to_vec());
+        let b = self.bufs.last().unwrap();
+        let sz = min(self.bytes_ready, b.len());
+        try!(b[self.offset..self.offset + sz].as_ref().read(buf));
+        self.bytes_ready -= sz;
+        self.offset = sz;
+        Ok(sz)
+    }
 }
 
 #[test]
 fn aoc09_test_parse() {
+    let inp = Cursor::new(b"(3x3)abcdef");
+    let mut dec = Decompress::new(inp);
+    let mut buf = String::new();
+    dec.read_to_string(&mut buf).unwrap();
+    println!("read {:?}", buf);
 }
 
 fn main() { }
